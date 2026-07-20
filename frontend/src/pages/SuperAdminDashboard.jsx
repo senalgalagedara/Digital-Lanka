@@ -1,0 +1,492 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { 
+  UserPlus, 
+  Trash2, 
+  Shield, 
+  RefreshCw, 
+  Plus, 
+  X, 
+  Search, 
+  Check, 
+  AlertTriangle 
+} from 'lucide-react';
+
+const SuperAdminDashboard = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Modals state
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isRoleOpen, setIsRoleOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Add User Form State
+  const [newUserData, setNewUserData] = useState({
+    nic: '',
+    fullName: '',
+    email: '',
+    password: '',
+    role: 'USER',
+    department: '',
+    batchNumber: '',
+    rank: '',
+    policeStation: ''
+  });
+
+  // Change Role Form State
+  const [targetRole, setTargetRole] = useState('USER');
+
+  // Fetch all users on mount
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await axios.get('/api/admin/users');
+      setUsers(response.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch users list.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    // Field validations based on role
+    if (newUserData.role === 'ADMIN' && !newUserData.department) {
+      setError('Department is required for Admins.');
+      return;
+    }
+
+    if (newUserData.role === 'OFFICER') {
+      if (!newUserData.batchNumber || !newUserData.rank || !newUserData.policeStation) {
+        setError('Batch number, rank, and police station are required for Officers.');
+        return;
+      }
+    }
+
+    try {
+      await axios.post('/api/admin/users', newUserData);
+      setSuccess(`User '${newUserData.fullName}' added successfully!`);
+      setIsAddOpen(false);
+      // Reset form
+      setNewUserData({
+        nic: '',
+        fullName: '',
+        email: '',
+        password: '',
+        role: 'USER',
+        department: '',
+        batchNumber: '',
+        rank: '',
+        policeStation: ''
+      });
+      fetchUsers();
+    } catch (err) {
+      // Catch validation errors or unique constraints from GlobalExceptionHandler
+      if (err.response?.data?.errors) {
+        const fieldErrors = Object.values(err.response.data.errors).join(', ');
+        setError(`Validation Error: ${fieldErrors}`);
+      } else {
+        setError(err.response?.data?.message || 'Failed to create user.');
+      }
+    }
+  };
+
+  const handleRoleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    if (!selectedUser) return;
+
+    try {
+      await axios.put(`/api/admin/users/${selectedUser.id}/role`, { role: targetRole });
+      setSuccess(`Successfully updated role of ${selectedUser.fullName} to ${targetRole}.`);
+      setIsRoleOpen(false);
+      setSelectedUser(null);
+      fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update role.');
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`Are you sure you want to delete user ${user.fullName}?`)) {
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+
+    try {
+      await axios.delete(`/api/admin/users/${user.id}`);
+      setSuccess(`User '${user.fullName}' deleted successfully.`);
+      fetchUsers();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete user.');
+    }
+  };
+
+  const openRoleModal = (user) => {
+    setSelectedUser(user);
+    setTargetRole(user.role);
+    setIsRoleOpen(true);
+  };
+
+  const filteredUsers = users.filter(user => {
+    const query = searchQuery.toLowerCase();
+    return (
+      user.fullName.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query) ||
+      user.nic.toLowerCase().includes(query) ||
+      user.role.toLowerCase().includes(query)
+    );
+  });
+
+  return (
+    <div>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Super Admin Dashboard</h1>
+          <p className="page-subtitle">Manage institutional directory and provision user accounts</p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.75rem' }}>
+          <button onClick={fetchUsers} className="btn btn-secondary">
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <span>Reload</span>
+          </button>
+          <button onClick={() => setIsAddOpen(true)} className="btn btn-primary">
+            <Plus size={16} />
+            <span>Add User</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Notifications */}
+      {error && (
+        <div className="alert-banner alert-error">
+          <AlertTriangle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
+      {success && (
+        <div className="alert-banner alert-success">
+          <Check size={18} />
+          <span>{success}</span>
+        </div>
+      )}
+
+      {/* Search & Stats Card */}
+      <div className="card" style={{ marginBottom: '2rem', padding: '1rem 1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
+            <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
+              <Search size={16} />
+            </span>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Search by name, email, NIC or role..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ paddingLeft: '2.75rem' }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '1.5rem', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+            <div>Total Accounts: <strong style={{ color: '#fff' }}>{users.length}</strong></div>
+            <div>Matching Filter: <strong style={{ color: 'var(--accent-cyan)' }}>{filteredUsers.length}</strong></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Directory Table */}
+      <div className="card" style={{ padding: 0 }}>
+        {loading && users.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            Loading user records...
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            No matching user records found.
+          </div>
+        ) : (
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Full Name & NIC</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Institutional Details</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#fff' }}>{user.fullName}</div>
+                      <div className="meta-detail">NIC: {user.nic}</div>
+                    </td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className={`badge badge-${user.role.toLowerCase()}`}>
+                        {user.role.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td>
+                      {user.role === 'SUPER_ADMIN' && (
+                        <span className="meta-detail" style={{ color: 'var(--text-muted)' }}>System Administrator</span>
+                      )}
+                      {user.role === 'ADMIN' && (
+                        <div>
+                          <div>Dept: <strong>{user.department || 'N/A'}</strong></div>
+                        </div>
+                      )}
+                      {user.role === 'OFFICER' && (
+                        <div style={{ fontSize: '0.85rem' }}>
+                          <div>Station: <strong>{user.policeStation || 'N/A'}</strong></div>
+                          <div className="meta-detail">Rank: {user.rank || 'N/A'} | Batch: {user.batchNumber || 'N/A'}</div>
+                        </div>
+                      )}
+                      {user.role === 'USER' && (
+                        <span className="meta-detail" style={{ color: 'var(--text-muted)' }}>Standard User</span>
+                      )}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button 
+                          onClick={() => openRoleModal(user)} 
+                          className="btn btn-secondary btn-icon" 
+                          title="Change Role"
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                        >
+                          <Shield size={14} />
+                          <span>Change Role</span>
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteUser(user)} 
+                          className="btn btn-danger btn-icon" 
+                          title="Delete User"
+                          style={{ padding: '0.35rem 0.5rem' }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Add User Modal */}
+      {isAddOpen && (
+        <div className="modal-overlay">
+          <div className="card modal-content">
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <UserPlus size={20} className="text-primary" />
+                <span>Provision New User</span>
+              </h2>
+              <button className="modal-close" onClick={() => setIsAddOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newUserData.fullName}
+                    onChange={(e) => setNewUserData({ ...newUserData, fullName: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">NIC (National ID)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newUserData.nic}
+                    onChange={(e) => setNewUserData({ ...newUserData, nic: e.target.value })}
+                    placeholder="991234567V"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={newUserData.email}
+                    onChange={(e) => setNewUserData({ ...newUserData, email: e.target.value })}
+                    placeholder="john@traffic.gov.lk"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Password</label>
+                  <input
+                    type="password"
+                    className="form-input"
+                    value={newUserData.password}
+                    onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Role</label>
+                <select
+                  className="form-input"
+                  value={newUserData.role}
+                  onChange={(e) => setNewUserData({ ...newUserData, role: e.target.value })}
+                >
+                  <option value="USER">User (Standard)</option>
+                  <option value="OFFICER">Traffic Officer</option>
+                  <option value="ADMIN">Administrator</option>
+                </select>
+              </div>
+
+              {/* Dynamic inputs for ADMIN */}
+              {newUserData.role === 'ADMIN' && (
+                <div className="form-group animate-slideUp">
+                  <label className="form-label">Department</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newUserData.department}
+                    onChange={(e) => setNewUserData({ ...newUserData, department: e.target.value })}
+                    placeholder="e.g. Licensing, Finance"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Dynamic inputs for OFFICER */}
+              {newUserData.role === 'OFFICER' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="animate-slideUp">
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">Police Station</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newUserData.policeStation}
+                      onChange={(e) => setNewUserData({ ...newUserData, policeStation: e.target.value })}
+                      placeholder="e.g. Colombo Central"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Batch Number</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newUserData.batchNumber}
+                      onChange={(e) => setNewUserData({ ...newUserData, batchNumber: e.target.value })}
+                      placeholder="e.g. B-9982"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Rank</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={newUserData.rank}
+                      onChange={(e) => setNewUserData({ ...newUserData, rank: e.target.value })}
+                      placeholder="e.g. Sergeant, Inspector"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setIsAddOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Save Account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Role Modal */}
+      {isRoleOpen && selectedUser && (
+        <div className="modal-overlay">
+          <div className="card modal-content" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h2>Change User Role</h2>
+              <button className="modal-close" onClick={() => setIsRoleOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleRoleUpdateSubmit}>
+              <div style={{ marginBottom: '1rem' }}>
+                Updating role for <strong style={{ color: 'var(--accent-cyan)' }}>{selectedUser.fullName}</strong>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  Current Role: {selectedUser.role}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Select New Role</label>
+                <select
+                  className="form-input"
+                  value={targetRole}
+                  onChange={(e) => setTargetRole(e.target.value)}
+                >
+                  <option value="USER">User (Standard)</option>
+                  <option value="OFFICER">Traffic Officer</option>
+                  <option value="ADMIN">Administrator</option>
+                  <option value="SUPER_ADMIN">System Super Admin</option>
+                </select>
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setIsRoleOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Update Role
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SuperAdminDashboard;
