@@ -1,12 +1,13 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Lock, Mail, ShieldAlert } from 'lucide-react';
+import { Lock, Mail, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const { login, isLoading } = useContext(AuthContext);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -88,14 +89,33 @@ const Login = () => {
               </span>
               <input
                 id="password"
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 className="form-input"
                 placeholder="••••••••"
-                style={{ paddingLeft: '2.75rem' }}
+                style={{ paddingLeft: '2.75rem', paddingRight: '2.75rem' }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                style={{
+                  position: 'absolute',
+                  right: '1rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
             </div>
           </div>
 

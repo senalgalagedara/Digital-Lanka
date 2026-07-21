@@ -1,67 +1,37 @@
-package com.digitallanka.institutionalprovisioning.entity;
+package com.digitallanka.institutionalprovisioning.dto;
 
-import jakarta.persistence.*;
-import java.time.LocalDateTime;
+import com.digitallanka.institutionalprovisioning.entity.Role;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
-@Entity
-@Table(name = "users")
-public class User {
+public class UpdateUserRequestDto {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, unique = true)
+    @NotBlank(message = "NIC is required")
     private String nic;
 
-    @Column(name = "full_name", nullable = false)
+    @NotBlank(message = "Full Name is required")
     private String fullName;
 
-    @Column(nullable = false, unique = true)
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
     private String email;
 
-    @Column(nullable = false)
+    // Password is optional for updates
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "user_role", nullable = false)
+    @NotNull(message = "Role is required")
     private Role role;
 
     // For ADMIN role
-    @Column(nullable = true)
     private String department;
 
     // For OFFICER role
-    @Column(name = "batch_number", nullable = true)
     private String batchNumber;
-
-    @Column(name = "user_rank", nullable = true)
     private String rank;
-
-    @Column(name = "police_station", nullable = true)
     private String policeStation;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
-
-    // Default Constructor
-    public User() {
-    }
-
     // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public String getNic() {
         return nic;
     }
@@ -132,13 +102,5 @@ public class User {
 
     public void setPoliceStation(String policeStation) {
         this.policeStation = policeStation;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 }

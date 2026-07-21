@@ -1,6 +1,7 @@
 package com.digitallanka.institutionalprovisioning.service.impl;
 
 import com.digitallanka.institutionalprovisioning.dto.CreateUserRequestDto;
+import com.digitallanka.institutionalprovisioning.dto.UpdateUserRequestDto;
 import com.digitallanka.institutionalprovisioning.dto.UserResponseDto;
 import com.digitallanka.institutionalprovisioning.entity.Role;
 import com.digitallanka.institutionalprovisioning.entity.User;
@@ -69,6 +70,55 @@ public class UserManagementServiceImpl implements UserManagementService {
 
         User savedUser = userRepository.save(user);
         return convertToDto(savedUser);
+    }
+
+    @Override
+    public UserResponseDto updateUser(Long id, UpdateUserRequestDto request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+
+        userRepository.findByNic(request.getNic()).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(id)) {
+                throw new DuplicateUserException("User with NIC '" + request.getNic() + "' already exists");
+            }
+        });
+
+        userRepository.findByEmail(request.getEmail()).ifPresent(existingUser -> {
+            if (!existingUser.getId().equals(id)) {
+                throw new DuplicateUserException("User with Email '" + request.getEmail() + "' already exists");
+            }
+        });
+
+        user.setNic(request.getNic());
+        user.setFullName(request.getFullName());
+        user.setEmail(request.getEmail());
+
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        user.setRole(request.getRole());
+
+        // Conditional assignment based on roles to maintain clean state
+        if (request.getRole() == Role.ADMIN) {
+            user.setDepartment(request.getDepartment());
+            user.setBatchNumber(null);
+            user.setRank(null);
+            user.setPoliceStation(null);
+        } else if (request.getRole() == Role.OFFICER) {
+            user.setDepartment(null);
+            user.setBatchNumber(request.getBatchNumber());
+            user.setRank(request.getRank());
+            user.setPoliceStation(request.getPoliceStation());
+        } else {
+            user.setDepartment(null);
+            user.setBatchNumber(null);
+            user.setRank(null);
+            user.setPoliceStation(null);
+        }
+
+        User updatedUser = userRepository.save(user);
+        return convertToDto(updatedUser);
     }
 
     @Override

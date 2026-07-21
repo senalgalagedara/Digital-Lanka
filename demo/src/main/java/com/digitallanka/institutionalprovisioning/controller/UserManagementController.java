@@ -2,6 +2,7 @@ package com.digitallanka.institutionalprovisioning.controller;
 
 import com.digitallanka.institutionalprovisioning.dto.AssignRoleRequestDto;
 import com.digitallanka.institutionalprovisioning.dto.CreateUserRequestDto;
+import com.digitallanka.institutionalprovisioning.dto.UpdateUserRequestDto;
 import com.digitallanka.institutionalprovisioning.dto.UserResponseDto;
 import com.digitallanka.institutionalprovisioning.service.UserManagementService;
 import jakarta.validation.Valid;
@@ -33,6 +34,15 @@ public class UserManagementController {
     public ResponseEntity<UserResponseDto> createUser(@Valid @RequestBody CreateUserRequestDto request) {
         UserResponseDto createdUser = userManagementService.createUser(request);
         return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponseDto> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRequestDto request
+    ) {
+        UserResponseDto updatedUser = userManagementService.updateUser(id, request);
+        return ResponseEntity.ok(updatedUser);
     }
 
     @PutMapping("/{id}/role")

@@ -9,7 +9,10 @@ import {
   X, 
   Search, 
   Check, 
-  AlertTriangle 
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  Edit
 } from 'lucide-react';
 
 const SuperAdminDashboard = () => {
@@ -20,6 +23,7 @@ const SuperAdminDashboard = () => {
 
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isRoleOpen, setIsRoleOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
@@ -39,8 +43,23 @@ const SuperAdminDashboard = () => {
     policeStation: ''
   });
 
+  // Edit User Form State
+  const [editUserData, setEditUserData] = useState({
+    id: null,
+    nic: '',
+    fullName: '',
+    email: '',
+    password: '',
+    role: 'USER',
+    department: '',
+    batchNumber: '',
+    rank: '',
+    policeStation: ''
+  });
+
   // Change Role Form State
   const [targetRole, setTargetRole] = useState('USER');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Fetch all users on mount
   useEffect(() => {
@@ -102,6 +121,56 @@ const SuperAdminDashboard = () => {
         setError(`Validation Error: ${fieldErrors}`);
       } else {
         setError(err.response?.data?.message || 'Failed to create user.');
+      }
+    }
+  };
+
+  const openEditModal = (user) => {
+    setEditUserData({
+      id: user.id,
+      nic: user.nic,
+      fullName: user.fullName,
+      email: user.email,
+      password: '',
+      role: user.role,
+      department: user.department || '',
+      batchNumber: user.batchNumber || '',
+      rank: user.rank || '',
+      policeStation: user.policeStation || ''
+    });
+    setIsEditOpen(true);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (editUserData.role === 'ADMIN') {
+      if (!editUserData.department) {
+        setError('Department is required for Administrators.');
+        return;
+      }
+    }
+
+    if (editUserData.role === 'OFFICER') {
+      if (!editUserData.batchNumber || !editUserData.rank || !editUserData.policeStation) {
+        setError('Batch number, rank, and police station are required for Officers.');
+        return;
+      }
+    }
+
+    try {
+      await axios.put(`/api/admin/users/${editUserData.id}`, editUserData);
+      setSuccess(`User '${editUserData.fullName}' updated successfully!`);
+      setIsEditOpen(false);
+      fetchUsers();
+    } catch (err) {
+      if (err.response?.data?.errors) {
+        const fieldErrors = Object.values(err.response.data.errors).join(', ');
+        setError(`Validation Error: ${fieldErrors}`);
+      } else {
+        setError(err.response?.data?.message || 'Failed to update user.');
       }
     }
   };
@@ -269,6 +338,15 @@ const SuperAdminDashboard = () => {
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button 
+                          onClick={() => openEditModal(user)} 
+                          className="btn btn-secondary btn-icon" 
+                          title="Edit User"
+                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                        >
+                          <Edit size={14} />
+                          <span>Edit</span>
+                        </button>
+                        <button 
                           onClick={() => openRoleModal(user)} 
                           className="btn btn-secondary btn-icon" 
                           title="Change Role"
@@ -349,14 +427,36 @@ const SuperAdminDashboard = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label">Password</label>
-                  <input
-                    type="password"
-                    className="form-input"
-                    value={newUserData.password}
-                    onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
-                    placeholder="••••••••"
-                    required
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-input"
+                      value={newUserData.password}
+                      onChange={(e) => setNewUserData({ ...newUserData, password: e.target.value })}
+                      placeholder="••••••••"
+                      style={{ paddingRight: '2.5rem' }}
+                      required
+                    />
+                    <button
+                      type="button"
+                      style={{
+                        position: 'absolute',
+                        right: '0.75rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -433,6 +533,172 @@ const SuperAdminDashboard = () => {
                 </button>
                 <button type="submit" className="btn btn-primary">
                   Save Account
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal */}
+      {isEditOpen && (
+        <div className="modal-overlay">
+          <div className="card modal-content">
+            <div className="modal-header">
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Edit size={20} className="text-primary" />
+                <span>Edit User Account</span>
+              </h2>
+              <button className="modal-close" onClick={() => setIsEditOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Full Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editUserData.fullName}
+                    onChange={(e) => setEditUserData({ ...editUserData, fullName: e.target.value })}
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">NIC (National ID)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editUserData.nic}
+                    onChange={(e) => setEditUserData({ ...editUserData, nic: e.target.value })}
+                    placeholder="991234567V"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Email Address</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    value={editUserData.email}
+                    onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+                    placeholder="john@traffic.gov.lk"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Password (Leave blank to keep current)</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      className="form-input"
+                      value={editUserData.password}
+                      onChange={(e) => setEditUserData({ ...editUserData, password: e.target.value })}
+                      placeholder="••••••••"
+                      style={{ paddingRight: '2.5rem' }}
+                    />
+                    <button
+                      type="button"
+                      style={{
+                        position: 'absolute',
+                        right: '0.75rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        cursor: 'pointer',
+                        padding: 0,
+                        display: 'flex',
+                        alignItems: 'center'
+                      }}
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Role</label>
+                <select
+                  className="form-input"
+                  value={editUserData.role}
+                  onChange={(e) => setEditUserData({ ...editUserData, role: e.target.value })}
+                >
+                  <option value="USER">User (Standard)</option>
+                  <option value="OFFICER">Traffic Officer</option>
+                  <option value="ADMIN">Administrator</option>
+                </select>
+              </div>
+
+              {/* Dynamic inputs for ADMIN */}
+              {editUserData.role === 'ADMIN' && (
+                <div className="form-group animate-slideUp">
+                  <label className="form-label">Department</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={editUserData.department}
+                    onChange={(e) => setEditUserData({ ...editUserData, department: e.target.value })}
+                    placeholder="e.g. Licensing, Finance"
+                    required
+                  />
+                </div>
+              )}
+
+              {/* Dynamic inputs for OFFICER */}
+              {editUserData.role === 'OFFICER' && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} className="animate-slideUp">
+                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="form-label">Police Station</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editUserData.policeStation}
+                      onChange={(e) => setEditUserData({ ...editUserData, policeStation: e.target.value })}
+                      placeholder="e.g. Colombo Central"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Batch Number</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editUserData.batchNumber}
+                      onChange={(e) => setEditUserData({ ...editUserData, batchNumber: e.target.value })}
+                      placeholder="e.g. B-9982"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Rank</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={editUserData.rank}
+                      onChange={(e) => setEditUserData({ ...editUserData, rank: e.target.value })}
+                      placeholder="e.g. Sergeant, Inspector"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setIsEditOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Update Account
                 </button>
               </div>
             </form>
