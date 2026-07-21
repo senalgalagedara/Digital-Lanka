@@ -24,7 +24,7 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "user_role", nullable = false)
+    @Column(name = "role", nullable = false)
     private Role role;
 
     // For ADMIN role
@@ -35,7 +35,7 @@ public class User {
     @Column(name = "batch_number", nullable = true)
     private String batchNumber;
 
-    @Column(name = "user_rank", nullable = true)
+    @Column(name = "rank", nullable = true)
     private String rank;
 
     @Column(name = "police_station", nullable = true)
