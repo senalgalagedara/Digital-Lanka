@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
+import com.digitallanka.institutionalprovisioning.config.JwtConfig;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -18,9 +19,9 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    private final com.digitallanka.institutionalprovisioning.config.JwtConfig jwtConfig;
+    private final JwtConfig jwtConfig;
 
-    public JwtUtil(com.digitallanka.institutionalprovisioning.config.JwtConfig jwtConfig) {
+    public JwtUtil(JwtConfig jwtConfig) {
         this.jwtConfig = jwtConfig;
     }
 
@@ -43,7 +44,7 @@ public class JwtUtil {
                 .setSubject(subject)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + jwtConfig.getExpiration()))
-                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
@@ -62,7 +63,7 @@ public class JwtUtil {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(getSignKey())
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
