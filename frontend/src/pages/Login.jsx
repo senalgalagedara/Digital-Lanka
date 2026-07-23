@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { Lock, Mail, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 
@@ -128,6 +128,10 @@ const Login = () => {
             {isLoading ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
+
+        <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          Don't have an account? <Link to="/register" style={{ fontWeight: '600' }}>Register here</Link>
+        </div>
 
         <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
           <p>Demo Super Admin Login:</p>

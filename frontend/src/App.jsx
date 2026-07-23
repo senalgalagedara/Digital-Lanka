@@ -4,6 +4,7 @@ import { AuthProvider, AuthContext } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Login from './pages/Login';
+import Register from './pages/Register';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import OfficerDashboard from './pages/OfficerDashboard';
@@ -26,7 +27,7 @@ const Layout = ({ children }) => {
   return (
     <div className="app-container">
       <nav className="navbar">
-        <div className="nav-brand">
+        <Link to="/" className="nav-brand" style={{ cursor: 'pointer', textDecoration: 'none' }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
             <circle cx="9" cy="7" r="4" />
@@ -34,7 +35,7 @@ const Layout = ({ children }) => {
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
           <span>Traffic Portal</span>
-        </div>
+        </Link>
         <div className="nav-actions">
           <div className="user-badge-nav">
             <UserIcon size={14} className="text-muted" />
@@ -79,6 +80,7 @@ const AppContent = () => {
     <Routes>
       {/* Public Route */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       {/* Protected Routes by Role */}
       <Route element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']} />}>

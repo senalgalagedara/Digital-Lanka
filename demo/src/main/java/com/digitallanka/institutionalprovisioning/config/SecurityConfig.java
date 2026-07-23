@@ -44,6 +44,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll() // Allow H2 console for easy debug
                 .requestMatchers("/api/admin/**").hasRole("SUPER_ADMIN") // Secure admin endpoints
+                .requestMatchers("/api/admin-requests/**").hasRole("SUPER_ADMIN")
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
